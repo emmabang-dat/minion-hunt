@@ -21,7 +21,7 @@ export default function Home() {
 
   return (
     <ImageBackground
-      source={require("../assets/images/frontpage.png")}
+      source={require("../assets/images/backgrounds/frontpage.png")}
       style={styles.background}
     >
       <View style={styles.container}>
