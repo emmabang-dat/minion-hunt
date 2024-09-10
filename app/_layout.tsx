@@ -33,7 +33,7 @@ export default function RootLayout() {
         <Stack.Screen name="countdown" options={{ headerShown: false }} />
         <Stack.Screen name="map" options={{ headerShown: false }} />
         <Stack.Screen name="loading" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
+        <Stack.Screen name="+not-found" options={{ headerShown: false }}/>
       </Stack>
   );
 }
