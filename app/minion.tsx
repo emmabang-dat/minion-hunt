@@ -15,7 +15,7 @@ export default function Minion() {
   const router = useRouter();
 
   const handlePress = () => {
-    router.push("/countdown");
+    router.push("/loading");
   };
 
   return (
