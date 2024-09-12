@@ -11,36 +11,37 @@ import {
   Keyboard,
 } from "react-native";
 
-export default function Minion() {
+export default function Team() {
   const router = useRouter();
 
   const handlePress = () => {
-    router.push("/team");
+    router.push("/countdown");
   };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.background}>
         <ImageBackground
-          source={require("../assets/images/backgrounds/minionBackground.png")}
+          source={require("../assets/images/backgrounds/teamname.png")}
           style={styles.backgroundImage}
         >
           <View style={styles.container}>
             <Text style={styles.text}>
-              Received Gru’s secret code? Enter it below to join the hunt! Once the
-              code is verified, the chase begins.
+              What’s a Minion without a team? Pick a name that strikes fear into
+              Gru (or at least makes him chuckle).
             </Text>
-            <Text style={styles.text}>Can you find Gru before everybody else?</Text>
+            <Text style={styles.text}>
+              Choose wisely – your team name is key to victory!{" "}
+            </Text>
             <View style={styles.button}>
               <TextInput
-                placeholder="Enter secret code"
+                placeholder="Enter your awesome team name..."
                 placeholderTextColor="black"
-                keyboardType="numeric"
-                maxLength={6}
+                maxLength={32}
               />
             </View>
             <TouchableOpacity style={styles.startButton} onPress={handlePress}>
-              <Text style={styles.startText}>Choose a team</Text>
+              <Text style={styles.startText}>Start the chase!</Text>
             </TouchableOpacity>
           </View>
         </ImageBackground>

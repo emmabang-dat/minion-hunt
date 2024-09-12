@@ -10,37 +10,44 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 
-export default function Minion() {
+export default function MinionTeam() {
   const router = useRouter();
 
-  const handlePress = () => {
-    router.push("/team");
-  };
+  const handlePress = () => {};
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.background}>
         <ImageBackground
-          source={require("../assets/images/backgrounds/minionBackground.png")}
+          source={require("../assets/images/backgrounds/theTeams.png")}
           style={styles.backgroundImage}
         >
           <View style={styles.container}>
             <Text style={styles.text}>
-              Received Gru’s secret code? Enter it below to join the hunt! Once the
-              code is verified, the chase begins.
+              These brave Minions think they can find you... When you’re ready,
+              press the button to start the chase and watch them scramble!
             </Text>
-            <Text style={styles.text}>Can you find Gru before everybody else?</Text>
-            <View style={styles.button}>
-              <TextInput
-                placeholder="Enter secret code"
-                placeholderTextColor="black"
-                keyboardType="numeric"
-                maxLength={6}
-              />
+            <View style={styles.teams}>
+              <View style={styles.button}>
+                <Text>The Banana Team</Text>
+              </View>
+              <View style={styles.button}>
+                <Text>Unicorns</Text>
+              </View>
+              <View style={styles.button}>
+                <Text>The Winners</Text>
+              </View>
+              <View style={styles.button}>
+                <Text>The Banana Team</Text>
+              </View>
+              <View style={styles.button}>
+                <Text>Unicorns</Text>
+              </View>
             </View>
             <TouchableOpacity style={styles.startButton} onPress={handlePress}>
-              <Text style={styles.startText}>Choose a team</Text>
+              <Text style={styles.startText}>Start the chase!</Text>
             </TouchableOpacity>
           </View>
         </ImageBackground>
@@ -68,10 +75,15 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
+  teams: {
+    gap: 20,
+    flexWrap: "wrap",
+    flexDirection: "row",
+  },
   button: {
-    marginTop: 40,
     backgroundColor: "#FFE135",
     paddingVertical: 15,
+    alignSelf: "flex-start",
     paddingHorizontal: 20,
     borderRadius: 50,
     shadowColor: "#000",

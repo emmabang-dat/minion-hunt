@@ -30,6 +30,8 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="minion" options={{ headerShown: false }} />
         <Stack.Screen name="gru" options={{ headerShown: false }} />
+        <Stack.Screen name="team" options={{ headerShown: false }} />
+        <Stack.Screen name="minionteam" options={{ headerShown: false }} />
         <Stack.Screen name="countdown" options={{ headerShown: false }} />
         <Stack.Screen name="map" options={{ headerShown: false }} />
         <Stack.Screen name="loading" options={{ headerShown: false }} />
