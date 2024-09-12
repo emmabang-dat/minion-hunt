@@ -1,19 +1,27 @@
+import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ImageBackground,
-  TouchableOpacity,
-} from "react-native";
+import { View, Text, StyleSheet, ImageBackground, TouchableOpacity } from "react-native";
 
 export default function Countdown() {
   const router = useRouter();
+  const [seconds, setSeconds] = useState(10); 
+
+  useEffect(() => {
+    if (seconds > 0) {
+      const timer = setInterval(() => {
+        setSeconds(prevSeconds => prevSeconds - 1);
+      }, 1000);
+
+      return () => clearInterval(timer);
+    } else {
+      router.push("/map");
+    }
+  }, [seconds, router]);
 
   const minionButton = () => {
     router.push("/map");
   };
+
   return (
     <ImageBackground
       source={require("../assets/images/backgrounds/countdown.png")}
@@ -21,7 +29,7 @@ export default function Countdown() {
     >
       <TouchableOpacity style={styles.container} onPress={minionButton}>
         <View style={styles.textBox}>
-          <Text style={styles.text}>12 minutes left</Text>
+          <Text style={styles.text}>{seconds} seconds left</Text>
         </View>
       </TouchableOpacity>
     </ImageBackground>

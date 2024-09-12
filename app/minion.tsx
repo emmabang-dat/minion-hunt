@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,20 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
+import { verifyCode } from "./firebase/firestoreService";
 
 export default function Minion() {
   const router = useRouter();
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
 
-  const handlePress = () => {
-    router.push("/team");
+  const handlePress = async () => {
+    const isValid = await verifyCode(code);
+    if (isValid) {
+      router.push("/team");
+    } else {
+      setError("Invalid code. Please try again.");
+    }
   };
 
   return (
@@ -27,18 +35,23 @@ export default function Minion() {
         >
           <View style={styles.container}>
             <Text style={styles.text}>
-              Received Gru’s secret code? Enter it below to join the hunt! Once the
-              code is verified, the chase begins.
+              Received Gru’s secret code? Enter it below to join the hunt! Once
+              the code is verified, the chase begins.
             </Text>
-            <Text style={styles.text}>Can you find Gru before everybody else?</Text>
+            <Text style={styles.text}>
+              Can you find Gru before everybody else?
+            </Text>
             <View style={styles.button}>
               <TextInput
+                value={code}
+                onChangeText={setCode}
                 placeholder="Enter secret code"
                 placeholderTextColor="black"
                 keyboardType="numeric"
                 maxLength={6}
               />
             </View>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <TouchableOpacity style={styles.startButton} onPress={handlePress}>
               <Text style={styles.startText}>Choose a team</Text>
             </TouchableOpacity>
@@ -106,5 +119,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "white",
+  },
+  errorText: { 
+    fontSize: 16, 
+    marginTop: 20,
+    color: "red", 
+    textAlign: "center" 
   },
 });

@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,25 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
+import { joinGame } from "./firebase/firestoreService";
 
 export default function Team() {
   const router = useRouter();
+  const [teamName, setTeamName] = useState("");
+  const [error, setError] = useState("");
 
-  const handlePress = () => {
-    router.push("/countdown");
+  const handlePress = async () => {
+    try {
+      const gruCode = "892347";
+      await joinGame(gruCode, teamName);
+      router.push("/waiting");
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("An unexpected error occurred");
+      }
+    }
   };
 
   return (
@@ -31,15 +44,18 @@ export default function Team() {
               Gru (or at least makes him chuckle).
             </Text>
             <Text style={styles.text}>
-              Choose wisely – your team name is key to victory!{" "}
+              Choose wisely – your team name is key to victory!
             </Text>
             <View style={styles.button}>
               <TextInput
+                value={teamName}
+                onChangeText={setTeamName}
                 placeholder="Enter your awesome team name..."
                 placeholderTextColor="black"
                 maxLength={32}
               />
             </View>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <TouchableOpacity style={styles.startButton} onPress={handlePress}>
               <Text style={styles.startText}>Start the chase!</Text>
             </TouchableOpacity>
@@ -107,5 +123,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "white",
+  },
+  errorText: { 
+    fontSize: 16, 
+    color: "red", 
+    marginTop: 20, 
+    textAlign: "center" 
   },
 });

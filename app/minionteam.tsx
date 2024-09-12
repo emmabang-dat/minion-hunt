@@ -1,21 +1,53 @@
-import { useRouter } from "expo-router";
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ImageBackground,
-  TouchableOpacity,
-  TextInput,
-  TouchableWithoutFeedback,
-  Keyboard,
-} from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { getTeamsByGame, startChase } from './firebase/firestoreService';
+import Loading from './loading';
+import { useRouter } from 'expo-router';
 
 export default function MinionTeam() {
+  const [teams, setTeams] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const gruCode = "892347"; 
   const router = useRouter();
 
-  const handlePress = () => {};
+
+  const handlePress = async () => {
+    try {
+      await startChase(gruCode);
+      router.push("/minionteam");
+    } catch (e) {
+      console.error('Error starting the chase: ', e);
+    }
+  };
+
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const fetchedTeams = await getTeamsByGame(gruCode);
+        setTeams(fetchedTeams);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Failed to load teams");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeams();
+  }, [gruCode]);
+
+  if (loading) {
+    return <Loading />; 
+  }
+
+  if (error) {
+    return <Text>Error: {error}</Text>;
+  }
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -29,23 +61,19 @@ export default function MinionTeam() {
               These brave Minions think they can find you... When you’re ready,
               press the button to start the chase and watch them scramble!
             </Text>
+
             <View style={styles.teams}>
-              <View style={styles.button}>
-                <Text>The Banana Team</Text>
-              </View>
-              <View style={styles.button}>
-                <Text>Unicorns</Text>
-              </View>
-              <View style={styles.button}>
-                <Text>The Winners</Text>
-              </View>
-              <View style={styles.button}>
-                <Text>The Banana Team</Text>
-              </View>
-              <View style={styles.button}>
-                <Text>Unicorns</Text>
-              </View>
+              {teams.length > 0 ? (
+                teams.map((teamName, index) => (
+                  <View key={index} style={styles.button}>
+                    <Text>{teamName}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text>No teams have joined yet.</Text>
+              )}
             </View>
+
             <TouchableOpacity style={styles.startButton} onPress={handlePress}>
               <Text style={styles.startText}>Start the chase!</Text>
             </TouchableOpacity>
@@ -55,6 +83,7 @@ export default function MinionTeam() {
     </TouchableWithoutFeedback>
   );
 }
+
 
 const styles = StyleSheet.create({
   background: {
