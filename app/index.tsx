@@ -12,7 +12,7 @@ export default function Home() {
   const router = useRouter();
 
   const minionButton = () => {
-    router.push("/minion");
+    router.push("/map");
   };
 
   const gruButton = () => {

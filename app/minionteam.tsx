@@ -1,24 +1,51 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import { getTeamsByGame, startChase } from './firebase/firestoreService';
-import Loading from './loading';
-import { useRouter } from 'expo-router';
+import { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ImageBackground,
+  TouchableOpacity,
+} from "react-native";
+import {
+  getTeamsByGame,
+  startChase,
+  saveLocationToFirestore,
+} from "./firebase/firestoreService";
+import Loading from "./loading"; // Importer din Loading komponent
+import { useRouter } from "expo-router";
+import * as Location from "expo-location";
 
 export default function MinionTeam() {
   const [teams, setTeams] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); 
   const [error, setError] = useState<string | null>(null);
 
-  const gruCode = "892347"; 
+  const gruCode = "892347";
   const router = useRouter();
 
-
   const handlePress = async () => {
+    setLoading(true); 
+
     try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.log("Permission to access location was denied");
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      await saveLocationToFirestore(gruCode, latitude, longitude);
+
       await startChase(gruCode);
+
       router.push("/minionteam");
     } catch (e) {
-      console.error('Error starting the chase: ', e);
+      console.error("Error starting the chase or tracking location: ", e);
+      setError("An error occurred while starting the chase."); 
+    } finally {
+      setLoading(false); 
     }
   };
 
@@ -42,7 +69,7 @@ export default function MinionTeam() {
   }, [gruCode]);
 
   if (loading) {
-    return <Loading />; 
+    return <Loading />;
   }
 
   if (error) {
@@ -50,40 +77,37 @@ export default function MinionTeam() {
   }
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.background}>
-        <ImageBackground
-          source={require("../assets/images/backgrounds/theTeams.png")}
-          style={styles.backgroundImage}
-        >
-          <View style={styles.container}>
-            <Text style={styles.text}>
-              These brave Minions think they can find you... When you’re ready,
-              press the button to start the chase and watch them scramble!
-            </Text>
+    <View style={styles.background}>
+      <ImageBackground
+        source={require("../assets/images/backgrounds/theTeams.png")}
+        style={styles.backgroundImage}
+      >
+        <View style={styles.container}>
+          <Text style={styles.text}>
+            These brave Minions think they can find you... When you’re ready,
+            press the button to start the chase and watch them scramble!
+          </Text>
 
-            <View style={styles.teams}>
-              {teams.length > 0 ? (
-                teams.map((teamName, index) => (
-                  <View key={index} style={styles.button}>
-                    <Text>{teamName}</Text>
-                  </View>
-                ))
-              ) : (
-                <Text>No teams have joined yet.</Text>
-              )}
-            </View>
-
-            <TouchableOpacity style={styles.startButton} onPress={handlePress}>
-              <Text style={styles.startText}>Start the chase!</Text>
-            </TouchableOpacity>
+          <View style={styles.teams}>
+            {teams.length > 0 ? (
+              teams.map((teamName, index) => (
+                <View key={index} style={styles.button}>
+                  <Text>{teamName}</Text>
+                </View>
+              ))
+            ) : (
+              <Text>No teams have joined yet.</Text>
+            )}
           </View>
-        </ImageBackground>
-      </View>
-    </TouchableWithoutFeedback>
+
+          <TouchableOpacity style={styles.startButton} onPress={handlePress}>
+            <Text style={styles.startText}>Start the chase!</Text>
+          </TouchableOpacity>
+        </View>
+      </ImageBackground>
+    </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   background: {

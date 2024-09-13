@@ -1,29 +1,29 @@
-import React, { useState, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ImageBackground,
-  TouchableOpacity,
-  Animated,
-  Dimensions,
-} from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, StyleSheet, Text, ImageBackground } from "react-native";
+import MapView, { Circle } from "react-native-maps";
+import { getGruLocation } from "./firebase/firestoreService";
 
 export default function Map() {
-  // Screen height
-  const screenHeight = Dimensions.get("window").height;
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    stadie: number;
+  } | null>(null);
 
-  // Bottom sheet position controlled by Animated.Value
-  const bottomSheetPosition = useRef(new Animated.Value(screenHeight)).current;
-
-  // Function to open the bottom sheet
-  const openBottomSheet = () => {
-    Animated.timing(bottomSheetPosition, {
-      toValue: screenHeight * 0.65, // Slide up to cover 35% of the screen
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  };
+  // Hent Gru's GPS-lokation fra Firestore
+  useEffect(() => {
+    const fetchLocation = async () => {
+      const gruLocation = await getGruLocation("892347");
+      if (gruLocation) {
+        setLocation({
+          latitude: gruLocation.latitude,
+          longitude: gruLocation.longitude,
+          stadie: gruLocation.stadie,
+        });
+      }
+    };
+    fetchLocation();
+  }, []);
 
   return (
     <ImageBackground
@@ -31,20 +31,33 @@ export default function Map() {
       style={styles.background}
     >
       <View style={styles.container}>
-        <TouchableOpacity onPress={openBottomSheet} style={styles.button}>
-          <Text>Open Bottom Sheet</Text>
-        </TouchableOpacity>
+        {location ? (
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: location.latitude,
+              longitude: location.longitude,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+          >
+            <Circle
+              center={{
+                latitude: location.latitude,
+                longitude: location.longitude,
+              }}
+              radius={(5 - location.stadie * 2) * 1000} // Start at 10 km, decrease by 2 km per stage
+              strokeWidth={2}
+              strokeColor="rgba(255, 0, 0, 0.5)"
+              fillColor="rgba(255, 0, 0, 0.2)"
+            />
+          </MapView>
+        ) : (
+          <View style={styles.noMapContainer}>
+            <Text style={styles.noMapText}>No map yet</Text>
+          </View>
+        )}
       </View>
-      <Animated.View
-        style={[
-          styles.bottomSheet,
-          {
-            transform: [{ translateY: bottomSheetPosition }],
-          },
-        ]}
-      >
-        <Text>Slide Up Bottom Sheet Content Here</Text>
-      </Animated.View>
     </ImageBackground>
   );
 }
@@ -57,25 +70,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    paddingTop: 200,
-    padding: 24,
   },
-  bottomSheet: {
-    position: "absolute",
-    height: "35%",
+  map: {
+    marginTop: 100,
+    height: "70%",
     width: "100%",
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 16,
+  },
+  noMapContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    bottom: 0,
   },
-  button: {
-    alignSelf: "center",
-    backgroundColor: "#007bff",
-    padding: 10,
-    borderRadius: 5,
+  noMapText: {
+    fontSize: 18,
+    color: "black",
+    fontWeight: "bold",
   },
 });
