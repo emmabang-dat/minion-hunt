@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Text, ImageBackground } from "react-native";
 import MapView, { Circle } from "react-native-maps";
-import { getGruLocation } from "./firebase/firestoreService";
+import { getGruLocation } from "../firebase/firestoreService";
 
 export default function Map() {
   const [location, setLocation] = useState<{
@@ -27,7 +27,7 @@ export default function Map() {
 
   return (
     <ImageBackground
-      source={require("../assets/images/backgrounds/mapTitle.png")}
+      source={require("../../assets/images/backgrounds/mapTitle.png")}
       style={styles.background}
     >
       <View style={styles.container}>
@@ -46,7 +46,7 @@ export default function Map() {
                 latitude: location.latitude,
                 longitude: location.longitude,
               }}
-              radius={(5 - location.stadie * 2) * 1000} // Start at 10 km, decrease by 2 km per stage
+              radius={(5 - location.stadie * 2) * 1000}
               strokeWidth={2}
               strokeColor="rgba(255, 0, 0, 0.5)"
               fillColor="rgba(255, 0, 0, 0.2)"

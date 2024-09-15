@@ -7,26 +7,30 @@ import {
   serverTimestamp,
   doc,
   updateDoc,
-  onSnapshot,
   setDoc,
   orderBy,
   limit,
 } from "firebase/firestore";
 import { firestore } from "./firebaseConfig";
 
+const getGameByGruCode = async (gruCode: string) => {
+  const q = query(
+    collection(firestore, "games"),
+    where("gruCode", "==", gruCode)
+  );
+  const querySnapshot = await getDocs(q);
+
+  if (!querySnapshot.empty) {
+    return querySnapshot.docs[0];
+  } else {
+    throw new Error("No game found for the provided Gru code");
+  }
+};
+
 export const verifyCode = async (gruCode: string) => {
   try {
-    const q = query(
-      collection(firestore, "games"),
-      where("gruCode", "==", gruCode)
-    );
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      return true;
-    } else {
-      return false;
-    }
+    const gameDoc = await getGameByGruCode(gruCode);
+    return !!gameDoc;
   } catch (e) {
     console.error("Error verifying code: ", e);
     return false;
@@ -48,23 +52,14 @@ export const createGame = async (gruCode: string) => {
 
 export const joinGame = async (gruCode: string, teamName: string) => {
   try {
-    const q = query(
-      collection(firestore, "games"),
-      where("gruCode", "==", gruCode)
-    );
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      const gameId = querySnapshot.docs[0].id;
-      await addDoc(collection(firestore, "minions"), {
-        teamName: teamName,
-        gameId: gameId,
-        joinedAt: serverTimestamp(),
-      });
-      return gameId;
-    } else {
-      throw new Error("Invalid Gru code");
-    }
+    const gameDoc = await getGameByGruCode(gruCode);
+    const gameId = gameDoc.id;
+    await addDoc(collection(firestore, "minions"), {
+      teamName: teamName,
+      gameId: gameId,
+      joinedAt: serverTimestamp(),
+    });
+    return gameId;
   } catch (e) {
     console.error("Error joining game: ", e);
   }
@@ -72,25 +67,16 @@ export const joinGame = async (gruCode: string, teamName: string) => {
 
 export const getTeamsByGame = async (gruCode: string) => {
   try {
-    const q = query(
-      collection(firestore, "games"),
-      where("gruCode", "==", gruCode)
+    const gameDoc = await getGameByGruCode(gruCode);
+    const gameId = gameDoc.id;
+    const teamsQuery = query(
+      collection(firestore, "minions"),
+      where("gameId", "==", gameId)
     );
-    const gameSnapshot = await getDocs(q);
+    const teamsSnapshot = await getDocs(teamsQuery);
 
-    if (!gameSnapshot.empty) {
-      const gameId = gameSnapshot.docs[0].id;
-      const teamsQuery = query(
-        collection(firestore, "minions"),
-        where("gameId", "==", gameId)
-      );
-      const teamsSnapshot = await getDocs(teamsQuery);
-
-      const teams = teamsSnapshot.docs.map((doc) => doc.data().teamName);
-      return teams;
-    } else {
-      throw new Error("No game found for the provided Gru code");
-    }
+    const teams = teamsSnapshot.docs.map((doc) => doc.data().teamName);
+    return teams;
   } catch (e) {
     console.error("Error fetching teams: ", e);
     return [];
@@ -99,20 +85,11 @@ export const getTeamsByGame = async (gruCode: string) => {
 
 export const startChase = async (gruCode: string) => {
   try {
-    const q = query(
-      collection(firestore, "games"),
-      where("gruCode", "==", gruCode)
-    );
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      const gameId = querySnapshot.docs[0].id;
-      const gameRef = doc(firestore, "games", gameId);
-      await updateDoc(gameRef, { status: "started" });
-      return gameId;
-    } else {
-      throw new Error("Invalid Gru code");
-    }
+    const gameDoc = await getGameByGruCode(gruCode);
+    const gameId = gameDoc.id;
+    const gameRef = doc(firestore, "games", gameId);
+    await updateDoc(gameRef, { status: "started" });
+    return gameId;
   } catch (e) {
     console.error("Error starting the chase: ", e);
   }
@@ -120,17 +97,8 @@ export const startChase = async (gruCode: string) => {
 
 export const getGameDocumentId = async (gruCode: string) => {
   try {
-    const q = query(
-      collection(firestore, "games"),
-      where("gruCode", "==", gruCode)
-    );
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      return querySnapshot.docs[0].id;
-    } else {
-      throw new Error("No game found for the provided Gru code");
-    }
+    const gameDoc = await getGameByGruCode(gruCode);
+    return gameDoc.id;
   } catch (e) {
     console.error("Error fetching game document ID: ", e);
     throw e;
@@ -143,39 +111,29 @@ export const saveLocationToFirestore = async (
   longitude: number
 ) => {
   try {
-    const q = query(
-      collection(firestore, "games"),
-      where("gruCode", "==", gruCode)
+    const gameDoc = await getGameByGruCode(gruCode);
+    const gameId = gameDoc.id;
+
+    const locationCollectionRef = collection(
+      firestore,
+      `games/${gameId}/locations`
     );
-    const querySnapshot = await getDocs(q);
+    const locationSnapshot = await getDocs(locationCollectionRef);
+    const currentStadie = locationSnapshot.size;
 
-    if (!querySnapshot.empty) {
-      const gameId = querySnapshot.docs[0].id;
+    const locationRef = doc(locationCollectionRef);
 
-      // Get the current 'stadie' value
-      const locationCollectionRef = collection(
-        firestore,
-        `games/${gameId}/locations`
-      );
-      const locationSnapshot = await getDocs(locationCollectionRef);
-      const currentStadie = locationSnapshot.size; 
+    await setDoc(locationRef, {
+      latitude,
+      longitude,
+      stadie: currentStadie + 1,
+      timestamp: serverTimestamp(),
+    });
 
-      const locationRef = doc(locationCollectionRef);
-
-      await setDoc(locationRef, {
-        latitude,
-        longitude,
-        stadie: currentStadie + 1,
-        timestamp: serverTimestamp(),
-      });
-
-      console.log(
-        "Location successfully saved with stadie:",
-        currentStadie + 1
-      );
-    } else {
-      throw new Error("Invalid Gru code");
-    }
+    console.log(
+      "Location successfully saved with stadie:",
+      currentStadie + 1
+    );
   } catch (e) {
     console.error("Error saving location: ", e);
   }
@@ -183,37 +141,43 @@ export const saveLocationToFirestore = async (
 
 export const getGruLocation = async (gruCode: string) => {
   try {
-    const q = query(
-      collection(firestore, "games"),
-      where("gruCode", "==", gruCode)
+    const gameDoc = await getGameByGruCode(gruCode);
+    const gameId = gameDoc.id;
+
+    const locationQuery = query(
+      collection(firestore, `games/${gameId}/locations`),
+      orderBy("timestamp", "desc"),
+      limit(1)
     );
-    const querySnapshot = await getDocs(q);
+    const locationSnapshot = await getDocs(locationQuery);
 
-    if (!querySnapshot.empty) {
-      const gameId = querySnapshot.docs[0].id;
-
-      const locationQuery = query(
-        collection(firestore, `games/${gameId}/locations`),
-        orderBy("timestamp", "desc"),
-        limit(1)
-      );
-      const locationSnapshot = await getDocs(locationQuery);
-
-      if (!locationSnapshot.empty) {
-        const locationData = locationSnapshot.docs[0].data();
-        return {
-          latitude: locationData.latitude,
-          longitude: locationData.longitude,
-          stadie: locationData.stadie, 
-        };
-      } else {
-        throw new Error("No location data found");
-      }
+    if (!locationSnapshot.empty) {
+      const locationData = locationSnapshot.docs[0].data();
+      return {
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        stadie: locationData.stadie,
+      };
     } else {
-      throw new Error("Invalid Gru code");
+      throw new Error("No location data found");
     }
   } catch (e) {
     console.error("Error fetching location: ", e);
     return null;
+  }
+};
+
+export const getChaseStatus = async (gruCode: string) => {
+  try {
+    const gameDoc = await getGameByGruCode(gruCode);
+    const gameData = gameDoc.data();
+    if (gameData.status) {
+      return gameData.status;
+    } else {
+      throw new Error("No status field found in game document");
+    }
+  } catch (e) {
+    console.error("Error fetching chase status: ", e);
+    throw e;
   }
 };

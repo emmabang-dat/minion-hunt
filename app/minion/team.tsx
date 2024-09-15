@@ -10,19 +10,24 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
-import { verifyCode } from "./firebase/firestoreService";
+import { joinGame } from "../firebase/firestoreService";
 
-export default function Minion() {
+export default function Team() {
   const router = useRouter();
-  const [code, setCode] = useState("");
+  const [teamName, setTeamName] = useState("");
   const [error, setError] = useState("");
 
   const handlePress = async () => {
-    const isValid = await verifyCode(code);
-    if (isValid) {
-      router.push("/team");
-    } else {
-      setError("Invalid code. Please try again.");
+    try {
+      const gruCode = "892347";
+      await joinGame(gruCode, teamName);
+      router.push("/minion/waiting");
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("An unexpected error occurred");
+      }
     }
   };
 
@@ -30,30 +35,29 @@ export default function Minion() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.background}>
         <ImageBackground
-          source={require("../assets/images/backgrounds/minionBackground.png")}
+          source={require("../../assets/images/backgrounds/teamname.png")}
           style={styles.backgroundImage}
         >
           <View style={styles.container}>
             <Text style={styles.text}>
-              Received Gru’s secret code? Enter it below to join the hunt! Once
-              the code is verified, the chase begins.
+              What’s a Minion without a team? Pick a name that strikes fear into
+              Gru (or at least makes him chuckle).
             </Text>
             <Text style={styles.text}>
-              Can you find Gru before everybody else?
+              Choose wisely – your team name is key to victory!
             </Text>
             <View style={styles.button}>
               <TextInput
-                value={code}
-                onChangeText={setCode}
-                placeholder="Enter secret code"
+                value={teamName}
+                onChangeText={setTeamName}
+                placeholder="Enter your awesome team name..."
                 placeholderTextColor="black"
-                keyboardType="numeric"
-                maxLength={6}
+                maxLength={32}
               />
             </View>
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <TouchableOpacity style={styles.startButton} onPress={handlePress}>
-              <Text style={styles.startText}>Choose a team</Text>
+              <Text style={styles.startText}>Start the chase!</Text>
             </TouchableOpacity>
           </View>
         </ImageBackground>
@@ -122,8 +126,8 @@ const styles = StyleSheet.create({
   },
   errorText: { 
     fontSize: 16, 
-    marginTop: 20,
     color: "red", 
+    marginTop: 20, 
     textAlign: "center" 
   },
 });

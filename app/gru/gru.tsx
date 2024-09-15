@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,17 +7,63 @@ import {
   ImageBackground,
   TouchableOpacity,
 } from "react-native";
+import { getChaseStatus } from "../firebase/firestoreService";
+import Loading from "../loading";
 
 export default function Gru() {
+  const [chaseStarted, setChaseStarted] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  
+  const gruCode = "892347";
+
+  useEffect(() => {
+    const checkChaseStatus = async () => {
+      try {
+        const status = await getChaseStatus(gruCode);
+        setChaseStarted(status === "started");
+      } catch (error) {
+        console.error("Error checking chase status:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkChaseStatus();
+  }, []);
+
   const handlePress = () => {
-    router.push("/minionteam");
+    if (chaseStarted) {
+      alert("The chase has already started! You cannot view the teams.");
+    } else {
+      router.push("/gru/team");
+    }
   };
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (chaseStarted) {
+    return (
+      <View style={styles.background}>
+        <ImageBackground
+          source={require("../../assets/images/backgrounds/theTeams.png")}
+          style={styles.background}
+        >
+          <View style={styles.container}>
+            <Text style={styles.text}>
+              The game is on! Watch out for those sneaky Minions... they're
+              coming for you! Stay hidden, and may the best team win!
+            </Text>
+          </View>
+        </ImageBackground>
+      </View>
+    );
+  }
 
   return (
     <ImageBackground
-      source={require("../assets/images/backgrounds/gruBackground.png")}
+      source={require("../../assets/images/backgrounds/gruBackground.png")}
       style={styles.background}
     >
       <View style={styles.container}>

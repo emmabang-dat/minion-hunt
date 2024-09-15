@@ -10,21 +10,21 @@ import {
   getTeamsByGame,
   startChase,
   saveLocationToFirestore,
-} from "./firebase/firestoreService";
-import Loading from "./loading"; // Importer din Loading komponent
+} from "../firebase/firestoreService";
+import Loading from "../loading";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
 
-export default function MinionTeam() {
+export default function Team() {
   const [teams, setTeams] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false); 
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const gruCode = "892347";
   const router = useRouter();
 
   const handlePress = async () => {
-    setLoading(true); 
+    setLoading(true);
 
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -37,20 +37,18 @@ export default function MinionTeam() {
       const { latitude, longitude } = location.coords;
 
       await saveLocationToFirestore(gruCode, latitude, longitude);
-
       await startChase(gruCode);
-
-      router.push("/minionteam");
     } catch (e) {
       console.error("Error starting the chase or tracking location: ", e);
-      setError("An error occurred while starting the chase."); 
+      setError("An error occurred while starting the chase.");
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     const fetchTeams = async () => {
+      setLoading(true);
       try {
         const fetchedTeams = await getTeamsByGame(gruCode);
         setTeams(fetchedTeams);
@@ -79,7 +77,7 @@ export default function MinionTeam() {
   return (
     <View style={styles.background}>
       <ImageBackground
-        source={require("../assets/images/backgrounds/theTeams.png")}
+        source={require("../../assets/images/backgrounds/theTeams.png")}
         style={styles.backgroundImage}
       >
         <View style={styles.container}>
@@ -128,8 +126,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
+  header: {
+    fontSize: 24,
+    marginBottom: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
   teams: {
-    gap: 20,
+    gap: 10,
     flexWrap: "wrap",
     flexDirection: "row",
   },

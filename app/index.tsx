@@ -12,11 +12,11 @@ export default function Home() {
   const router = useRouter();
 
   const minionButton = () => {
-    router.push("/map");
+    router.push("/minion/countdown");
   };
 
   const gruButton = () => {
-    router.push("/gru");
+    router.push("/gru/gru");
   };
 
   return (
