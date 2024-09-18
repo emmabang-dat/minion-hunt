@@ -10,8 +10,8 @@ import {
   getTeamsByGame,
   startChase,
   saveLocationToFirestore,
-} from "../firebase/firestoreService";
-import Loading from "../loading";
+} from "./firebase/firestoreService";
+import Loading from "./loading";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
 
@@ -33,16 +33,22 @@ export default function Team() {
         return;
       }
 
-      let location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
-
-      await saveLocationToFirestore(gruCode, latitude, longitude);
       await startChase(gruCode);
+
+      setTimeout(async () => {
+        let location = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = location.coords;
+
+        await saveLocationToFirestore(gruCode, latitude, longitude);
+        console.log("Location fetched and saved after 20 minutes!");
+        // }, 20 * 60 * 1000);
+      }, 5 * 1000);
     } catch (e) {
       console.error("Error starting the chase or tracking location: ", e);
       setError("An error occurred while starting the chase.");
     } finally {
       setLoading(false);
+      router.back();
     }
   };
 
@@ -77,7 +83,7 @@ export default function Team() {
   return (
     <View style={styles.background}>
       <ImageBackground
-        source={require("../../assets/images/backgrounds/theTeams.png")}
+        source={require("../assets/images/backgrounds/theTeams.png")}
         style={styles.backgroundImage}
       >
         <View style={styles.container}>

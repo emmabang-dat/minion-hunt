@@ -7,8 +7,8 @@ import {
   ImageBackground,
   TouchableOpacity,
 } from "react-native";
-import { getChaseStatus } from "../firebase/firestoreService";
-import Loading from "../loading";
+import { getChaseStatus } from "./firebase/firestoreService";
+import Loading from "./loading";
 
 export default function Gru() {
   const [chaseStarted, setChaseStarted] = useState(false);
@@ -35,7 +35,7 @@ export default function Gru() {
     if (chaseStarted) {
       alert("The chase has already started! You cannot view the teams.");
     } else {
-      router.push("/gru/team");
+      router.push("/team");
     }
   };
 
@@ -47,7 +47,7 @@ export default function Gru() {
     return (
       <View style={styles.background}>
         <ImageBackground
-          source={require("../../assets/images/backgrounds/theTeams.png")}
+          source={require("../assets/images/backgrounds/theTeams.png")}
           style={styles.background}
         >
           <View style={styles.container}>
@@ -63,7 +63,7 @@ export default function Gru() {
 
   return (
     <ImageBackground
-      source={require("../../assets/images/backgrounds/gruBackground.png")}
+      source={require("../assets/images/backgrounds/gruBackground.png")}
       style={styles.background}
     >
       <View style={styles.container}>

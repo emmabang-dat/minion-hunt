@@ -88,7 +88,12 @@ export const startChase = async (gruCode: string) => {
     const gameDoc = await getGameByGruCode(gruCode);
     const gameId = gameDoc.id;
     const gameRef = doc(firestore, "games", gameId);
-    await updateDoc(gameRef, { status: "started" });
+
+    await updateDoc(gameRef, {
+      status: "waiting",
+      startTime: new Date(),
+    });
+
     return gameId;
   } catch (e) {
     console.error("Error starting the chase: ", e);

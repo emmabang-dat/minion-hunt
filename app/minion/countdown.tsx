@@ -22,7 +22,7 @@ export default function Countdown() {
   }, []);
 
   useEffect(() => {
-    if (chaseStatus === "Started" && seconds > 0) {
+    if (chaseStatus === "started" && seconds > 0) {
       const timer = setInterval(() => {
         setSeconds((prevSeconds) => prevSeconds - 1);
       }, 1000);
@@ -40,7 +40,7 @@ export default function Countdown() {
     >
       <View style={styles.container}>
         <View style={styles.textBox}>
-          {chaseStatus === "Started" ? (
+          {chaseStatus === "started" ? (
             <Text style={styles.text}>{seconds} seconds left</Text>
           ) : (
             <Text style={styles.text}>
