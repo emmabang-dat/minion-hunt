@@ -86,7 +86,6 @@ export default function Map() {
   const [location, setLocation] = useState<Location | null>(null);
   const [circle, setCircle] = useState<CircleType | null>(null);
 
-  // Hent Gru's GPS-lokation fra Firestore
   useEffect(() => {
     const fetchLocation = async () => {
       const gruLocation = await getGruLocation("892347");
@@ -97,7 +96,6 @@ export default function Map() {
           stadie: gruLocation.stadie,
         });
 
-        // Start cirkel-generering med dynamisk radius
         let C_prev_lat = gruLocation.latitude;
         let C_prev_lng = gruLocation.longitude;
         let R_prev = (5 - gruLocation.stadie * 2) * 1000;

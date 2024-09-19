@@ -7,16 +7,52 @@ import {
   Image,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { getChaseStatus } from "./firebase/firestoreService";
 
 export default function Home() {
   const router = useRouter();
+  const gruCode = "892347";
 
+  const navigateBasedOnStatus = async () => {
+    try {
+      const status = await getChaseStatus(gruCode);
+
+      switch (status) {
+        case "waiting":
+          router.push("/minion/countdown");
+          break;
+        case "started":
+          router.push("/minion/map");
+          break;
+        default:
+          router.push("/minion/minion");
+      }
+    } catch (error) {
+      console.error("Failed to navigate based on game status:", error);
+    }
+  };
   const minionButton = () => {
-    router.push("/minion/minion");
+    navigateBasedOnStatus();
+  };
+
+  const navigateBasedOnGruStatus = async () => {
+    try {
+      const status = await getChaseStatus(gruCode);
+
+      switch (status) {
+        case "started":
+          router.push("/team");
+          break;
+        default:
+          router.push("/gru");
+      }
+    } catch (error) {
+      console.error("Failed to navigate based on game status:", error);
+    }
   };
 
   const gruButton = () => {
-    router.push("/gru");
+    navigateBasedOnGruStatus();
   };
 
   return (
