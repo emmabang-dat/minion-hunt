@@ -35,24 +35,8 @@ export default function Home() {
     navigateBasedOnStatus();
   };
 
-  const navigateBasedOnGruStatus = async () => {
-    try {
-      const status = await getChaseStatus(gruCode);
-
-      switch (status) {
-        case "started":
-          router.push("/team");
-          break;
-        default:
-          router.push("/gru");
-      }
-    } catch (error) {
-      console.error("Failed to navigate based on game status:", error);
-    }
-  };
-
   const gruButton = () => {
-    navigateBasedOnGruStatus();
+    router.push("/gru");
   };
 
   return (

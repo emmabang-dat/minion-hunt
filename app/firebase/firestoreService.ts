@@ -186,3 +186,54 @@ export const getChaseStatus = async (gruCode: string) => {
     throw e;
   }
 };
+
+export const fetchLocationAndStartTime = async (gruCode: string) => {
+  try {
+    const gameDoc = await getGameByGruCode(gruCode);
+    const gameId = gameDoc.id;
+
+    // Fetch the latest location
+    const locationQuery = query(
+      collection(firestore, `games/${gameId}/locations`),
+      orderBy("timestamp", "desc"),
+      limit(1)
+    );
+    const locationSnapshot = await getDocs(locationQuery);
+    let locationData = null;
+    if (!locationSnapshot.empty) {
+      locationData = locationSnapshot.docs[0].data();
+    }
+
+    // Fetch the game start time
+    const gameData = gameDoc.data();
+    const startTime = gameData.startTime ? gameData.startTime.toDate() : null;
+
+    return {
+      location: locationData,
+      startTime: startTime,
+    };
+  } catch (e) {
+    console.error("Error fetching location and start time: ", e);
+    throw e;
+  }
+};
+
+export const updateChaseStatus = async (gruCode: string, newStatus: string) => {
+  try {
+    const gameDoc = await getGameByGruCode(gruCode);
+    if (!gameDoc) {
+      console.error("Game not found");
+      return;
+    }
+    const gameId = gameDoc.id;
+    const gameRef = doc(firestore, "games", gameId);
+
+    await updateDoc(gameRef, {
+      status: newStatus,
+    });
+
+    console.log(`Chase status updated to '${newStatus}' for game with GRU code: ${gruCode}`);
+  } catch (e) {
+    console.error("Error updating chase status: ", e);
+  }
+};

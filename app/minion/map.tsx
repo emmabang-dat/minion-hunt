@@ -47,7 +47,8 @@ function generateNewCircle(
   const reductionFactor = 0.8;
   const R_new = R_prev * reductionFactor;
 
-  const maxCenterOffset = R_prev - R_new;
+  const bufferDistance = Math.max(R_new * 0.04, 40); // Minimum 5% or 50 meters buffer
+  const maxCenterOffset = R_prev - R_new - bufferDistance; // Adjust for buffer
 
   let N_lat: number, N_lng: number;
 
@@ -71,7 +72,7 @@ function generateNewCircle(
       H_lng
     );
 
-    if (distanceCenterToHider <= R_new) {
+    if (distanceCenterToHider <= R_new - bufferDistance) {
       break;
     }
   }

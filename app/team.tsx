@@ -10,6 +10,7 @@ import {
   getTeamsByGame,
   startChase,
   saveLocationToFirestore,
+  updateChaseStatus,
 } from "./firebase/firestoreService";
 import Loading from "./loading";
 import { useRouter } from "expo-router";
@@ -39,10 +40,14 @@ export default function Team() {
         let location = await Location.getCurrentPositionAsync({});
         const { latitude, longitude } = location.coords;
 
-        await saveLocationToFirestore(gruCode, latitude, longitude);
-        console.log("Location fetched and saved after 20 minutes!");
-        // }, 20 * 60 * 1000);
-      }, 5 * 1000);
+      // Save the location to Firestore
+      await saveLocationToFirestore(gruCode, latitude, longitude);
+      console.log("Location fetched and saved after 5 seconds!");
+
+      // Update the status to 'started' in Firestore
+      await updateChaseStatus(gruCode, 'started');
+      console.log("Chase status updated to 'started'!");
+    }, 5 * 1000);
     } catch (e) {
       console.error("Error starting the chase or tracking location: ", e);
       setError("An error occurred while starting the chase.");
