@@ -20,7 +20,9 @@ export default function Team() {
   const [teams, setTeams] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [unsubscribeTeams, setUnsubscribeTeams] = useState<() => void | null>(() => null);
+  const [unsubscribeTeams, setUnsubscribeTeams] = useState<() => void | null>(
+    () => null
+  );
 
   const gruCode = "892347";
   const router = useRouter();
@@ -35,7 +37,6 @@ export default function Team() {
         return;
       }
 
-      // Afmeld abonnementet
       if (unsubscribeTeams) {
         unsubscribeTeams();
       }
@@ -44,15 +45,25 @@ export default function Team() {
       await updateChaseStatus(gruCode, "waiting");
 
       setTimeout(async () => {
-        let location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
+        try {
+          let location = await Location.getCurrentPositionAsync({});
+          const { latitude, longitude } = location.coords;
 
-        // Save the location to Firestore
-        await saveLocationToFirestore(gruCode, latitude, longitude);
+          console.log("Fetched location from device:", { latitude, longitude });
 
-        // Update the status to 'started' in Firestore
-        await updateChaseStatus(gruCode, "started");
-      }, 20 * 60 * 1000);
+          await saveLocationToFirestore(gruCode, latitude, longitude);
+
+          await updateChaseStatus(gruCode, "started");
+
+          console.log("Status updated to 'started'");
+        } catch (error) {
+          console.error(
+            "Error during location saving or status update:",
+            error
+          );
+        }
+      }, 20 * 60 * 1000); // 20 minutter
+      // }, 10 * 1000); // 10 sekunder
     } catch (e) {
       console.error("Error starting the chase or tracking location: ", e);
       setError("An error occurred while starting the chase.");
@@ -64,7 +75,7 @@ export default function Team() {
 
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
-  
+
     const setupSubscription = async () => {
       unsubscribe = await subscribeToTeams(gruCode, (updatedTeams) => {
         setTeams(updatedTeams);
@@ -77,8 +88,6 @@ export default function Team() {
       }
     };
   }, [gruCode]);
-  
-  
 
   if (loading) {
     return <Loading />;

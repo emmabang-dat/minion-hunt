@@ -148,24 +148,22 @@ export const saveLocationToFirestore = async (
       firestore,
       `games/${gameId}/locations`
     );
-    const locationSnapshot = await getDocs(locationCollectionRef);
-    const currentStadie = locationSnapshot.size;
 
-    const locationRef = doc(locationCollectionRef);
+    const currentStadie = (await getDocs(locationCollectionRef)).size;
 
-    await setDoc(locationRef, {
+    const locationData = {
       latitude,
       longitude,
       stadie: currentStadie + 1,
-      timestamp: serverTimestamp(),
-    });
+      timestamp: serverTimestamp(), // Dynamisk server-timestamp
+    };
 
-    console.log(
-      "Location successfully saved with stadie:",
-      currentStadie + 1
-    );
-  } catch (e) {
-    console.error("Error saving location: ", e);
+    // Gem lokationen
+    await addDoc(locationCollectionRef, locationData);
+
+    console.log("Location successfully saved with data:", locationData);
+  } catch (error) {
+    console.error("Error saving location:", error);
   }
 };
 
