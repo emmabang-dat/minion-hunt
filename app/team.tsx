@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import {
-  getTeamsByGame,
+  subscribeToTeams,
   startChase,
   saveLocationToFirestore,
   updateChaseStatus,
@@ -20,6 +20,7 @@ export default function Team() {
   const [teams, setTeams] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unsubscribeTeams, setUnsubscribeTeams] = useState<() => void | null>(() => null);
 
   const gruCode = "892347";
   const router = useRouter();
@@ -34,20 +35,24 @@ export default function Team() {
         return;
       }
 
+      // Afmeld abonnementet
+      if (unsubscribeTeams) {
+        unsubscribeTeams();
+      }
+
       await startChase(gruCode);
+      await updateChaseStatus(gruCode, "waiting");
 
       setTimeout(async () => {
         let location = await Location.getCurrentPositionAsync({});
         const { latitude, longitude } = location.coords;
 
-      // Save the location to Firestore
-      await saveLocationToFirestore(gruCode, latitude, longitude);
-      console.log("Location fetched and saved after 5 seconds!");
+        // Save the location to Firestore
+        await saveLocationToFirestore(gruCode, latitude, longitude);
 
-      // Update the status to 'started' in Firestore
-      await updateChaseStatus(gruCode, 'started');
-      console.log("Chase status updated to 'started'!");
-    }, 5 * 1000);
+        // Update the status to 'started' in Firestore
+        await updateChaseStatus(gruCode, "started");
+      }, 20 * 60 * 1000);
     } catch (e) {
       console.error("Error starting the chase or tracking location: ", e);
       setError("An error occurred while starting the chase.");
@@ -58,24 +63,22 @@ export default function Team() {
   };
 
   useEffect(() => {
-    const fetchTeams = async () => {
-      setLoading(true);
-      try {
-        const fetchedTeams = await getTeamsByGame(gruCode);
-        setTeams(fetchedTeams);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("Failed to load teams");
-        }
-      } finally {
-        setLoading(false);
+    let unsubscribe: (() => void) | null = null;
+  
+    const setupSubscription = async () => {
+      unsubscribe = await subscribeToTeams(gruCode, (updatedTeams) => {
+        setTeams(updatedTeams);
+      });
+    };
+    setupSubscription();
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
       }
     };
-
-    fetchTeams();
   }, [gruCode]);
+  
+  
 
   if (loading) {
     return <Loading />;
@@ -133,12 +136,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 16,
-    marginBottom: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  header: {
-    fontSize: 24,
     marginBottom: 20,
     fontWeight: "bold",
     textAlign: "center",

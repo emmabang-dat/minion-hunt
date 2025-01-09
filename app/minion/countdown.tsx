@@ -1,37 +1,75 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { View, Text, StyleSheet, ImageBackground } from "react-native";
-import { getChaseStatus } from "../firebase/firestoreService";
+import {
+  subscribeToChaseStatus,
+  updateChaseStatus,
+  getGameByGruCode,
+} from "../firebase/firestoreService";
 
 export default function Countdown() {
   const router = useRouter();
-  const [seconds, setSeconds] = useState(10);
+  const [seconds, setSeconds] = useState<number | null>(null);
   const [chaseStatus, setChaseStatus] = useState<string | null>(null);
+  const gruCode = "892347";
 
   useEffect(() => {
-    const fetchChaseStatus = async () => {
-      try {
-        const status = await getChaseStatus("892347");
+    let unsubscribe: (() => void) | null = null;
+    let interval: NodeJS.Timeout | null = null;
+
+    const setupSubscription = async () => {
+      unsubscribe = await subscribeToChaseStatus(gruCode, async (status) => {
         setChaseStatus(status);
-      } catch (error) {
-        console.error("Error fetching chase status:", error);
-      }
+
+        if (status === "waiting") {
+          // Hent startTime fra Firestore
+          const gameDoc = await getGameByGruCode(gruCode);
+          const startTime = gameDoc.data()?.startTime?.toDate(); // Forventet som Firestore timestamp
+
+          if (startTime) {
+            const elapsedSeconds = Math.floor(
+              (Date.now() - startTime.getTime()) / 1000
+            );
+            const remainingTime = 20 * 60 - elapsedSeconds;
+
+            if (remainingTime > 0) {
+              setSeconds(remainingTime);
+
+              interval = setInterval(() => {
+                setSeconds((prevSeconds) => {
+                  if (prevSeconds !== null && prevSeconds > 1) {
+                    return prevSeconds - 1;
+                  } else {
+                    clearInterval(interval!);
+                    updateChaseStatus(gruCode, "started");
+                    router.push("/minion/map");
+                    return null;
+                  }
+                });
+              }, 1000);
+            } else {
+              // Hvis tiden allerede er udløbet, opdater status til "started"
+              await updateChaseStatus(gruCode, "started");
+              router.push("/minion/map");
+            }
+          }
+        }
+
+        if (status === "started") {
+          // Hvis status allerede er started, gå direkte til map-siden
+          if (interval) clearInterval(interval);
+          router.push("/minion/map");
+        }
+      });
     };
 
-    fetchChaseStatus();
-  }, []);
+    setupSubscription();
 
-  useEffect(() => {
-    if (chaseStatus === "started" && seconds > 0) {
-      const timer = setInterval(() => {
-        setSeconds((prevSeconds) => prevSeconds - 1);
-      }, 1000);
-
-      return () => clearInterval(timer);
-    } else if (seconds <= 0) {
-      router.push("/minion/map");
-    }
-  }, [seconds, chaseStatus, router]);
+    return () => {
+      if (unsubscribe) unsubscribe();
+      if (interval) clearInterval(interval);
+    };
+  }, [gruCode, router]);
 
   return (
     <ImageBackground
@@ -40,8 +78,17 @@ export default function Countdown() {
     >
       <View style={styles.container}>
         <View style={styles.textBox}>
-          {chaseStatus === "started" ? (
-            <Text style={styles.text}>{seconds} seconds left</Text>
+          {chaseStatus === "waiting" ? (
+            seconds !== null ? (
+              <Text style={styles.text}>
+                {Math.floor(seconds / 60)} minutes{" "}
+                {seconds % 60 > 0 && `${seconds % 60} seconds`} left
+              </Text>
+            ) : (
+              <Text style={styles.text}>Calculating time...</Text>
+            )
+          ) : chaseStatus === "started" ? (
+            <Text style={styles.text}>Chase has started!</Text>
           ) : (
             <Text style={styles.text}>
               Waiting for Gru to start the countdown

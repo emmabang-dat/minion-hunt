@@ -10,10 +10,19 @@ import {
   setDoc,
   orderBy,
   limit,
+  onSnapshot,
 } from "firebase/firestore";
 import { firestore } from "./firebaseConfig";
 
-const getGameByGruCode = async (gruCode: string) => {
+const gameCache: Record<string, any> = {};
+
+// **Cache-enabled getGameByGruCode**
+export const getGameByGruCode = async (gruCode: string) => {
+  if (gameCache[gruCode]) {
+    console.log("Using cached game data for gruCode:", gruCode);
+    return gameCache[gruCode];
+  }
+
   const q = query(
     collection(firestore, "games"),
     where("gruCode", "==", gruCode)
@@ -21,12 +30,15 @@ const getGameByGruCode = async (gruCode: string) => {
   const querySnapshot = await getDocs(q);
 
   if (!querySnapshot.empty) {
-    return querySnapshot.docs[0];
+    const gameDoc = querySnapshot.docs[0];
+    gameCache[gruCode] = gameDoc; // Cache resultatet
+    return gameDoc;
   } else {
     throw new Error("No game found for the provided Gru code");
   }
 };
 
+// **Verify code**
 export const verifyCode = async (gruCode: string) => {
   try {
     const gameDoc = await getGameByGruCode(gruCode);
@@ -37,6 +49,7 @@ export const verifyCode = async (gruCode: string) => {
   }
 };
 
+// **Create a game**
 export const createGame = async (gruCode: string) => {
   try {
     const docRef = await addDoc(collection(firestore, "games"), {
@@ -50,6 +63,7 @@ export const createGame = async (gruCode: string) => {
   }
 };
 
+// **Join a game**
 export const joinGame = async (gruCode: string, teamName: string) => {
   try {
     const gameDoc = await getGameByGruCode(gruCode);
@@ -65,24 +79,33 @@ export const joinGame = async (gruCode: string, teamName: string) => {
   }
 };
 
-export const getTeamsByGame = async (gruCode: string) => {
+// **Get teams by game**
+export const subscribeToTeams = async (
+  gruCode: string,
+  callback: (teams: string[]) => void
+): Promise<() => void> => {
   try {
     const gameDoc = await getGameByGruCode(gruCode);
     const gameId = gameDoc.id;
+
     const teamsQuery = query(
       collection(firestore, "minions"),
       where("gameId", "==", gameId)
     );
-    const teamsSnapshot = await getDocs(teamsQuery);
 
-    const teams = teamsSnapshot.docs.map((doc) => doc.data().teamName);
-    return teams;
+    const unsubscribe = onSnapshot(teamsQuery, (snapshot) => {
+      const teams = snapshot.docs.map((doc) => doc.data().teamName);
+      callback(teams);
+    });
+
+    return unsubscribe; // Returner unsubscribe-funktionen
   } catch (e) {
-    console.error("Error fetching teams: ", e);
-    return [];
+    console.error("Error subscribing to teams: ", e);
+    return () => {}; // Returner en tom funktion ved fejl
   }
 };
 
+// **Start the chase**
 export const startChase = async (gruCode: string) => {
   try {
     const gameDoc = await getGameByGruCode(gruCode);
@@ -90,7 +113,7 @@ export const startChase = async (gruCode: string) => {
     const gameRef = doc(firestore, "games", gameId);
 
     await updateDoc(gameRef, {
-      status: "waiting",
+      status: "started",
       startTime: new Date(),
     });
 
@@ -100,6 +123,7 @@ export const startChase = async (gruCode: string) => {
   }
 };
 
+// **Get game document ID**
 export const getGameDocumentId = async (gruCode: string) => {
   try {
     const gameDoc = await getGameByGruCode(gruCode);
@@ -110,6 +134,7 @@ export const getGameDocumentId = async (gruCode: string) => {
   }
 };
 
+// **Save location to Firestore**
 export const saveLocationToFirestore = async (
   gruCode: string,
   latitude: number,
@@ -144,6 +169,7 @@ export const saveLocationToFirestore = async (
   }
 };
 
+// **Get Gru location**
 export const getGruLocation = async (gruCode: string) => {
   try {
     const gameDoc = await getGameByGruCode(gruCode);
@@ -173,52 +199,43 @@ export const getGruLocation = async (gruCode: string) => {
   }
 };
 
-export const getChaseStatus = async (gruCode: string) => {
+// Subscribe to **Get chase status**
+export const subscribeToChaseStatus = async (
+  gruCode: string,
+  callback: (status: string) => void
+): Promise<() => void> => {
   try {
-    const gameDoc = await getGameByGruCode(gruCode);
-    const gameData = gameDoc.data();
-    if (gameData.status) {
-      return gameData.status;
-    } else {
-      throw new Error("No status field found in game document");
-    }
-  } catch (e) {
-    console.error("Error fetching chase status: ", e);
-    throw e;
-  }
-};
-
-export const fetchLocationAndStartTime = async (gruCode: string) => {
-  try {
-    const gameDoc = await getGameByGruCode(gruCode);
-    const gameId = gameDoc.id;
-
-    // Fetch the latest location
-    const locationQuery = query(
-      collection(firestore, `games/${gameId}/locations`),
-      orderBy("timestamp", "desc"),
-      limit(1)
+    // Find dokumentet baseret på gruCode-feltet
+    const gameQuery = query(
+      collection(firestore, "games"),
+      where("gruCode", "==", gruCode)
     );
-    const locationSnapshot = await getDocs(locationQuery);
-    let locationData = null;
-    if (!locationSnapshot.empty) {
-      locationData = locationSnapshot.docs[0].data();
+    const querySnapshot = await getDocs(gameQuery);
+
+    if (querySnapshot.empty) {
+      throw new Error("No game found with the provided Gru code.");
     }
 
-    // Fetch the game start time
-    const gameData = gameDoc.data();
-    const startTime = gameData.startTime ? gameData.startTime.toDate() : null;
+    // Brug dokumentets ID til at lave en reference
+    const gameDocRef = querySnapshot.docs[0].ref;
 
-    return {
-      location: locationData,
-      startTime: startTime,
-    };
-  } catch (e) {
-    console.error("Error fetching location and start time: ", e);
-    throw e;
+    // Abonner på ændringer i dette dokument
+    const unsubscribe = onSnapshot(gameDocRef, (doc) => {
+      const data = doc.data();
+      if (data?.status) {
+        callback(data.status);
+      }
+    });
+
+    return unsubscribe;
+  } catch (error) {
+    console.error("Error subscribing to chase status:", error);
+    return () => {};
   }
 };
 
+
+// **Update chase status**
 export const updateChaseStatus = async (gruCode: string, newStatus: string) => {
   try {
     const gameDoc = await getGameByGruCode(gruCode);
@@ -233,7 +250,9 @@ export const updateChaseStatus = async (gruCode: string, newStatus: string) => {
       status: newStatus,
     });
 
-    console.log(`Chase status updated to '${newStatus}' for game with GRU code: ${gruCode}`);
+    console.log(
+      `Chase status updated to '${newStatus}' for game with GRU code: ${gruCode}`
+    );
   } catch (e) {
     console.error("Error updating chase status: ", e);
   }

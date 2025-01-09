@@ -7,7 +7,7 @@ import {
   ImageBackground,
   TouchableOpacity,
 } from "react-native";
-import { getChaseStatus } from "./firebase/firestoreService";
+import { subscribeToChaseStatus } from "./firebase/firestoreService";
 import Loading from "./loading";
 
 export default function Gru() {
@@ -17,19 +17,23 @@ export default function Gru() {
   const gruCode = "892347";
 
   useEffect(() => {
-    const checkChaseStatus = async () => {
-      try {
-        const status = await getChaseStatus(gruCode);
-        setChaseStarted(status === "started");
-      } catch (error) {
-        console.error("Error checking chase status:", error);
-      } finally {
-        setLoading(false);
-      }
+    let unsubscribe: (() => void) | null = null;
+
+    const setupSubscription = async () => {
+      unsubscribe = await subscribeToChaseStatus(gruCode, (status) => {
+        setChaseStarted(status === "waiting" || status === "started");
+        setLoading(false); // Stopper loading, når vi får en status
+      });
     };
 
-    checkChaseStatus();
-  }, []);
+    setupSubscription();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [gruCode]);
 
   const handlePress = () => {
     if (chaseStarted) {

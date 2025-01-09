@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,32 +8,42 @@ import {
   Image,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { getChaseStatus } from "./firebase/firestoreService";
+import { subscribeToChaseStatus } from "./firebase/firestoreService";
 
 export default function Home() {
   const router = useRouter();
   const gruCode = "892347";
+  const [currentStatus, setCurrentStatus] = useState<string | null>(null);
 
-  const navigateBasedOnStatus = async () => {
-    try {
-      const status = await getChaseStatus(gruCode);
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
 
-      switch (status) {
-        case "waiting":
-          router.push("/minion/countdown");
-          break;
-        case "started":
-          router.push("/minion/map");
-          break;
-        default:
-          router.push("/minion/minion");
+    const setupSubscription = async () => {
+      unsubscribe = await subscribeToChaseStatus(gruCode, (status) => {
+        setCurrentStatus(status);
+      });
+    };
+
+    setupSubscription();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
       }
-    } catch (error) {
-      console.error("Failed to navigate based on game status:", error);
-    }
-  };
+    };
+  }, [gruCode]);
+
   const minionButton = () => {
-    navigateBasedOnStatus();
+    switch (currentStatus) {
+      case "waiting":
+        router.push("/minion/countdown");
+        break;
+      case "started":
+        router.push("/minion/map");
+        break;
+      default:
+        router.push("/minion/minion");
+    }
   };
 
   const gruButton = () => {
