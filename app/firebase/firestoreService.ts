@@ -162,6 +162,7 @@ export const getGruLocation = async (gruCode: string) => {
         latitude: locationData.latitude,
         longitude: locationData.longitude,
         stadie: locationData.stadie,
+        timestamp: locationData.timestamp,
       };
     } else {
       throw new Error("No location data found");

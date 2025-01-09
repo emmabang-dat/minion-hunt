@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Text, ImageBackground } from "react-native";
 import MapView, { Circle } from "react-native-maps";
 import { getGruLocation } from "../firebase/firestoreService";
+import HintBottomSheet from "@/components/BottomSheet";
 
 interface Location {
   latitude: number;
@@ -17,21 +18,7 @@ interface CircleType {
   radius: number;
 }
 
-function getDistanceFromLatLonInMeters(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371000; // Earth's radius in meters
-  const dLat = deg2rad(lat2 - lat1);
-  const dLon = deg2rad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
+const MIN_RADIUS = 200;
 
 function deg2rad(deg: number): number {
   return deg * (Math.PI / 180);
@@ -45,9 +32,9 @@ function generateNewCircle(
   H_lng: number
 ): CircleType {
   const reductionFactor = 0.8;
-  const R_new = R_prev * reductionFactor;
+  let R_new = Math.max(R_prev * reductionFactor, MIN_RADIUS);
 
-  const bufferDistance = Math.max(R_new * 0.04, 40); // Minimum 4% or 40 meters buffer
+  const bufferDistance = Math.max(R_new * 0.04, 40);
   const maxCenterOffset = R_prev - R_new - bufferDistance;
 
   let N_lat: number, N_lng: number;
@@ -65,11 +52,8 @@ function generateNewCircle(
     N_lat = C_prev_lat + deltaLat_center;
     N_lng = C_prev_lng + deltaLng_center;
 
-    const distanceCenterToHider = getDistanceFromLatLonInMeters(
-      N_lat,
-      N_lng,
-      H_lat,
-      H_lng
+    const distanceCenterToHider = Math.sqrt(
+      deltaLat_center ** 2 + deltaLng_center ** 2
     );
 
     if (distanceCenterToHider <= R_new - bufferDistance) {
@@ -86,49 +70,83 @@ function generateNewCircle(
 export default function Map() {
   const [location, setLocation] = useState<Location | null>(null);
   const [circle, setCircle] = useState<CircleType | null>(null);
+  const [timeLeft, setTimeLeft] = useState(15);
 
   useEffect(() => {
     const fetchLocation = async () => {
       const gruLocation = await getGruLocation("892347");
+
       if (gruLocation) {
+        const startTime =
+          gruLocation.timestamp.seconds * 1000 +
+          gruLocation.timestamp.nanoseconds / 1e6;
+
+        const currentTime = Date.now();
+
+        const timeElapsed = Math.floor(
+          (currentTime - startTime) / (15 * 60 * 1000)
+        );
+
+        const nextReductionTime = 15 - Math.floor(
+          ((currentTime - startTime) % (15 * 60 * 1000)) / (60 * 1000)
+        );
+
+        setTimeLeft(nextReductionTime);
+
+        const initialStadie = Math.min(gruLocation.stadie + timeElapsed, 5);
+
+        let R_prev = Math.max((5 - gruLocation.stadie * 2) * 1000, MIN_RADIUS);
+        if (timeElapsed > 0) {
+          R_prev = Math.max((5 - initialStadie * 2) * 1000, MIN_RADIUS);
+        }
+
+        const initialCircle: CircleType = {
+          center: {
+            latitude: gruLocation.latitude,
+            longitude: gruLocation.longitude,
+          },
+          radius: R_prev,
+        };
+
         setLocation({
           latitude: gruLocation.latitude,
           longitude: gruLocation.longitude,
-          stadie: gruLocation.stadie,
+          stadie: initialStadie,
         });
-
-        let C_prev_lat = gruLocation.latitude;
-        let C_prev_lng = gruLocation.longitude;
-        let R_prev = (5 - gruLocation.stadie * 2) * 1000;
-
-        const initialCircle: CircleType = {
-          center: { latitude: C_prev_lat, longitude: C_prev_lng },
-          radius: R_prev,
-        };
         setCircle(initialCircle);
-
-        const interval = setInterval(() => {
-          const newCircle = generateNewCircle(
-            C_prev_lat,
-            C_prev_lng,
-            R_prev,
-            gruLocation.latitude,
-            gruLocation.longitude
-          );
-
-          setCircle(newCircle);
-
-          C_prev_lat = newCircle.center.latitude;
-          C_prev_lng = newCircle.center.longitude;
-          R_prev = newCircle.radius;
-          // }, 15 * 60 * 1000); 15 sekunder i millisekunder
-        }, 5 * 1000); // 5 sekunder i millisekunder
-
-        return () => clearInterval(interval);
+      } else {
+        console.error("No location data found.");
       }
     };
+
     fetchLocation();
   }, []);
+
+  useEffect(() => {
+    if (timeLeft > 0) {
+      const countdown = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 60 * 1000);
+
+      return () => clearInterval(countdown);
+    } else {
+      setTimeLeft(15);
+    }
+  }, [timeLeft]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && circle) {
+      const newCircle = generateNewCircle(
+        circle.center.latitude,
+        circle.center.longitude,
+        circle.radius,
+        location?.latitude || circle.center.latitude,
+        location?.longitude || circle.center.longitude
+      );
+
+      setCircle(newCircle);
+    }
+  }, [timeLeft]);
 
   return (
     <ImageBackground
@@ -161,12 +179,22 @@ export default function Map() {
             <Text style={styles.noMapText}>No map yet</Text>
           </View>
         )}
+        <HintBottomSheet>
+          <View style={styles.contentBottomSheet}>
+            <Text style={styles.textBottomSheet}>
+              Next hint in: {timeLeft} minute{timeLeft !== 1 ? "s" : ""}
+            </Text>
+            <ImageBackground
+              source={require("../../assets/images/backgrounds/hintBackground.png")}
+              style={styles.hintBackground}
+            />
+          </View>
+        </HintBottomSheet>
       </View>
     </ImageBackground>
   );
 }
 
-// Styles
 const styles = StyleSheet.create({
   background: {
     flex: 1,
@@ -190,5 +218,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "black",
     fontWeight: "bold",
+  },
+  contentBottomSheet: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  textBottomSheet: {
+    fontSize: 32,
+    color: "black",
+    marginTop: 22,
+    marginBottom: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  hintBackground: {
+    width: "100%",
+    height: 200,
+    resizeMode: "contain",
   },
 });
