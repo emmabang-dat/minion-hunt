@@ -47,8 +47,8 @@ function generateNewCircle(
   const reductionFactor = 0.8;
   const R_new = R_prev * reductionFactor;
 
-  const bufferDistance = Math.max(R_new * 0.04, 40); // Minimum 5% or 50 meters buffer
-  const maxCenterOffset = R_prev - R_new - bufferDistance; // Adjust for buffer
+  const bufferDistance = Math.max(R_new * 0.04, 40); // Minimum 4% or 40 meters buffer
+  const maxCenterOffset = R_prev - R_new - bufferDistance;
 
   let N_lat: number, N_lng: number;
 
@@ -121,9 +121,8 @@ export default function Map() {
           C_prev_lat = newCircle.center.latitude;
           C_prev_lng = newCircle.center.longitude;
           R_prev = newCircle.radius;
+          // }, 15 * 60 * 1000); 15 sekunder i millisekunder
         }, 5 * 1000); // 5 sekunder i millisekunder
-
-        // }, 15 * 60 * 1000); // 15 minutter i millisekunder
 
         return () => clearInterval(interval);
       }

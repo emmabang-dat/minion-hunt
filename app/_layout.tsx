@@ -15,15 +15,24 @@ export default function RootLayout() {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+  // useEffect(() => {
+  //   if (loaded) {
+  //     SplashScreen.hideAsync();
+  //   }
+  // }, [loaded]);
 
-  if (!loaded) {
-    return null;
-  }
+  // if (!loaded) {
+  //   return null;
+  // }
+
+  useEffect(() => {
+    const prepare = async () => {
+      if (loaded) {
+        await SplashScreen.hideAsync();
+      }
+    };
+    prepare();
+  }, [loaded]);
 
   return (
     <Stack initialRouteName="index">
@@ -34,7 +43,7 @@ export default function RootLayout() {
 
       <Stack.Screen name="gru" options={{ headerShown: false }} />
       <Stack.Screen name="team" options={{ headerShown: false }} />
-      
+
       <Stack.Screen name="loading" options={{ headerShown: false }} />
       <Stack.Screen name="+not-found" options={{ headerShown: false }} />
     </Stack>
