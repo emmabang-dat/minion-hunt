@@ -203,7 +203,6 @@ export const subscribeToChaseStatus = async (
   callback: (status: string) => void
 ): Promise<() => void> => {
   try {
-    // Find dokumentet baseret på gruCode-feltet
     const gameQuery = query(
       collection(firestore, "games"),
       where("gruCode", "==", gruCode)
@@ -213,11 +212,8 @@ export const subscribeToChaseStatus = async (
     if (querySnapshot.empty) {
       throw new Error("No game found with the provided Gru code.");
     }
-
-    // Brug dokumentets ID til at lave en reference
     const gameDocRef = querySnapshot.docs[0].ref;
 
-    // Abonner på ændringer i dette dokument
     const unsubscribe = onSnapshot(gameDocRef, (doc) => {
       const data = doc.data();
       if (data?.status) {
@@ -243,14 +239,10 @@ export const updateChaseStatus = async (gruCode: string, newStatus: string) => {
     }
     const gameId = gameDoc.id;
     const gameRef = doc(firestore, "games", gameId);
-
+    
     await updateDoc(gameRef, {
       status: newStatus,
     });
-
-    console.log(
-      `Chase status updated to '${newStatus}' for game with GRU code: ${gruCode}`
-    );
   } catch (e) {
     console.error("Error updating chase status: ", e);
   }

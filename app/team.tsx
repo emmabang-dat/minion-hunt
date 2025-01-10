@@ -36,11 +36,9 @@ export default function Team() {
         console.log("Permission to access location was denied");
         return;
       }
-
       if (unsubscribeTeams) {
         unsubscribeTeams();
       }
-
       await startChase(gruCode);
       await updateChaseStatus(gruCode, "waiting");
 
@@ -48,22 +46,15 @@ export default function Team() {
         try {
           let location = await Location.getCurrentPositionAsync({});
           const { latitude, longitude } = location.coords;
-
-          console.log("Fetched location from device:", { latitude, longitude });
-
           await saveLocationToFirestore(gruCode, latitude, longitude);
-
           await updateChaseStatus(gruCode, "started");
-
-          console.log("Status updated to 'started'");
         } catch (error) {
           console.error(
             "Error during location saving or status update:",
             error
           );
         }
-      }, 20 * 60 * 1000); // 20 minutter
-      // }, 10 * 1000); // 10 sekunder
+      }, 20 * 60 * 1000); 
     } catch (e) {
       console.error("Error starting the chase or tracking location: ", e);
       setError("An error occurred while starting the chase.");
