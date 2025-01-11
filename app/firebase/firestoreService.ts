@@ -19,7 +19,6 @@ const gameCache: Record<string, any> = {};
 // **Cache-enabled getGameByGruCode**
 export const getGameByGruCode = async (gruCode: string) => {
   if (gameCache[gruCode]) {
-    console.log("Using cached game data for gruCode:", gruCode);
     return gameCache[gruCode];
   }
 
