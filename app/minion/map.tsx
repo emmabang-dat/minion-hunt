@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, Text, ImageBackground } from "react-native";
-import MapView, { Circle } from "react-native-maps";
+import {
+  View,
+  StyleSheet,
+  Text,
+  ImageBackground,
+  TouchableOpacity,
+} from "react-native";
+import MapView, { Circle, Marker } from "react-native-maps";
 import { getGruLocation } from "../firebase/firestoreService";
 import HintBottomSheet from "@/components/BottomSheet";
+import { ChallengeButton, getRandomPositionInCircle } from "./challengeButton";
+import Svg, { Path } from "react-native-svg";
 
 interface Location {
   latitude: number;
@@ -20,7 +28,7 @@ interface CircleType {
 
 const MIN_RADIUS = 200;
 
-function deg2rad(deg: number): number {
+export function deg2rad(deg: number): number {
   return deg * (Math.PI / 180);
 }
 
@@ -72,6 +80,10 @@ export default function Map() {
   const [circle, setCircle] = useState<CircleType | null>(null);
   const [timeLeft, setTimeLeft] = useState(15);
 
+  const [challengePositions, setChallengePositions] = useState<
+    { latitude: number; longitude: number }[]
+  >([]);
+
   useEffect(() => {
     const fetchLocation = async () => {
       const gruLocation = await getGruLocation("892347");
@@ -87,9 +99,11 @@ export default function Map() {
           (currentTime - startTime) / (15 * 60 * 1000)
         );
 
-        const nextReductionTime = 15 - Math.floor(
-          ((currentTime - startTime) % (15 * 60 * 1000)) / (60 * 1000)
-        );
+        const nextReductionTime =
+          15 -
+          Math.floor(
+            ((currentTime - startTime) % (15 * 60 * 1000)) / (60 * 1000)
+          );
 
         setTimeLeft(nextReductionTime);
 
@@ -121,6 +135,15 @@ export default function Map() {
 
     fetchLocation();
   }, []);
+
+  useEffect(() => {
+    if (circle) {
+      const positions = Array.from({ length: 3 }).map(() =>
+        getRandomPositionInCircle(circle.center, circle.radius)
+      );
+      setChallengePositions(positions);
+    }
+  }, [circle]);
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -155,25 +178,33 @@ export default function Map() {
     >
       <View style={styles.container}>
         {location ? (
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: location.latitude,
-              longitude: location.longitude,
-              latitudeDelta: 0.05,
-              longitudeDelta: 0.05,
-            }}
-          >
-            {circle && (
-              <Circle
-                center={circle.center}
-                radius={circle.radius}
-                strokeWidth={2}
-                strokeColor="rgba(255, 0, 0, 0.5)"
-                fillColor="rgba(255, 0, 0, 0.2)"
-              />
-            )}
-          </MapView>
+          <View style={styles.container}>
+            <MapView
+              style={styles.map}
+              initialRegion={{
+                latitude: location.latitude,
+                longitude: location.longitude,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
+              }}
+            >
+              {circle && (
+                <Circle
+                  center={circle.center}
+                  radius={circle.radius}
+                  strokeWidth={2}
+                  strokeColor="rgba(255, 0, 0, 0.5)"
+                  fillColor="rgba(255, 0, 0, 0.2)"
+                />
+              )}
+
+              {challengePositions.map((position, index) => (
+                <Marker key={index} coordinate={position}>
+                  <ChallengeButton />
+                </Marker>
+              ))}
+            </MapView>
+          </View>
         ) : (
           <View style={styles.noMapContainer}>
             <Text style={styles.noMapText}>No map yet</Text>
@@ -181,9 +212,15 @@ export default function Map() {
         )}
         <HintBottomSheet>
           <View style={styles.contentBottomSheet}>
-            <Text style={styles.textBottomSheet}>
-              Next hint in: {timeLeft} minute{timeLeft !== 1 ? "s" : ""}
-            </Text>
+            {circle?.radius === MIN_RADIUS ? (
+              <Text style={styles.textBottomSheet}>
+                The circle can't get any smaller... You're on your own now!
+              </Text>
+            ) : (
+              <Text style={styles.textBottomSheet}>
+                Next hint in: {timeLeft} minute{timeLeft !== 1 ? "s" : ""}
+              </Text>
+            )}
             <ImageBackground
               source={require("../../assets/images/backgrounds/hintBackground.png")}
               style={styles.hintBackground}
@@ -204,10 +241,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
   },
+
   map: {
     marginTop: 100,
     height: "70%",
     width: "100%",
+  },
+  challengeButtonContainer: {
+    position: "absolute",
+    right: 200,
+    top: 400,
+    zIndex: 1,
   },
   noMapContainer: {
     flex: 1,
