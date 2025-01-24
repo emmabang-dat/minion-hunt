@@ -9,7 +9,7 @@ import {
 import MapView, { Circle, Marker } from "react-native-maps";
 import { getGruLocation } from "../firebase/firestoreService";
 import HintBottomSheet from "@/components/BottomSheet";
-import { ChallengeButton, getRandomPositionInCircle } from "./challengeButton";
+// import { ChallengeButton, getRandomPositionInCircle } from "./challengeButton";
 import Svg, { Path } from "react-native-svg";
 
 interface Location {
@@ -136,14 +136,14 @@ export default function Map() {
     fetchLocation();
   }, []);
 
-  useEffect(() => {
-    if (circle) {
-      const positions = Array.from({ length: 3 }).map(() =>
-        getRandomPositionInCircle(circle.center, circle.radius)
-      );
-      setChallengePositions(positions);
-    }
-  }, [circle]);
+  // useEffect(() => {
+  //   if (circle) {
+  //     const positions = Array.from({ length: 3 }).map(() =>
+  //       getRandomPositionInCircle(circle.center, circle.radius)
+  //     );
+  //     setChallengePositions(positions);
+  //   }
+  // }, [circle]);
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -198,11 +198,11 @@ export default function Map() {
                 />
               )}
 
-              {challengePositions.map((position, index) => (
+              {/* {challengePositions.map((position, index) => (
                 <Marker key={index} coordinate={position}>
                   <ChallengeButton />
                 </Marker>
-              ))}
+              ))} */}
             </MapView>
           </View>
         ) : (
