@@ -13,23 +13,30 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.creutzenbang.minionhunt"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/favicon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.creutzenbang.minionhunt"
     },
     "web": {
       "bundler": "metro",
       "output": "server",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": ["expo-router", "expo-font"],
+    "plugins": ["expo-router", "expo-font", "./plugin.js", "./fixGrpcPodfile.js"],
     "experiments": {
       "typedRoutes": true
     },
-    "newArchEnabled": false
+    "newArchEnabled": false,
+    "extra": {
+      "eas": {
+        "projectId": "b87ea114-5e2c-4da0-ad43-d1c5220bdcf2"
+      }
+    }
   }
 }
